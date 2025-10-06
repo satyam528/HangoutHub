@@ -1,31 +1,45 @@
-import express from "express";
-import Room from "./Room.js";
+import express from 'express';
+import Room from './Room.js'; // Your mongoose Room model
 
 const router = express.Router();
 
-function generateRoomCode() {
-  return Math.random().toString(36).substring(2, 10).toUpperCase();
-}
+// Route to create room
+router.post('/create', async (req, res) => {
+  const { hostProfile } = req.body;
 
-// Create new room
-router.post("/create", async (req, res) => {
+  if (!hostProfile || !hostProfile.name) {
+    return res.status(400).json({ error: 'Invalid host profile' });
+  }
+
   try {
-    const { hostName } = req.body;
-    if (!hostName) return res.status(400).json({ error: "Host name required" });
-
-    const code = generateRoomCode();
     const room = new Room({
-      code,
-      hostName,
-      participants: [],
-      messages: []
+      hostName: hostProfile.name,
+      hostProfile,
+      admissionRequired: true,
+      waitingList: [],
     });
+
     await room.save();
 
-    res.json({ roomCode: code });
-  } catch (err) {
-    console.error("Error creating room:", err);
-    res.status(500).json({ error: "Failed to create room" });
+    res.json({ roomCode: room.code });
+  } catch (error) {
+    console.error('Room creation error:', error);
+    res.status(500).json({ error: 'Failed to create room' });
+  }
+});
+
+// Route to get room by code
+router.get('/:code', async (req, res) => {
+  const { code } = req.params;
+  try {
+    const room = await Room.findOne({ code });
+    if (!room) {
+      return res.status(404).json({ error: 'Room not found' });
+    }
+    res.json(room);
+  } catch (error) {
+    console.error('Get room error:', error);
+    res.status(500).json({ error: 'Failed to retrieve room' });
   }
 });
 

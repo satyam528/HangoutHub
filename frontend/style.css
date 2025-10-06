@@ -1,10 +1,269 @@
-.glass-effect {
-  background: rgba(255, 255, 255, 0.05);
+/* ===================== GLOBAL ===================== */
+body {
+  font-family: 'Inter', sans-serif;
+  background: linear-gradient(135deg, #0f172a, #000);
+  color: #fff;
+  height: 100vh;
+  margin: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+button {
+  transition: all 0.3s ease;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ===================== LOGIN PAGE ===================== */
+#homePage {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.login-card {
+  background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  -webkit-backdrop-filter: blur(12px); /* Safari support */
-  backdrop-filter: blur(12px);          /* Chrome, Edge, Firefox */
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  padding: 2rem;
+  border-radius: 16px;
+  width: 340px;
+  text-align: center;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+  animation: fadeInUp 0.6s ease;
+}
+
+.login-card input {
+  width: 100%;
+  padding: 0.7rem;
+  border-radius: 8px;
+  border: none;
+  outline: none;
+  margin: 0.6rem 0;
+  text-align: center;
+  font-size: 1rem;
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+}
+
+.login-card input::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.login-card button {
+  width: 100%;
+  padding: 0.7rem;
+  background: #6d28d9;
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 1rem;
+}
+
+.login-card button:hover {
+  background: #7c3aed;
+}
+
+/* Smooth fade in for login */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ===================== CHAT APP ===================== */
+#chatApp {
+  display: none;
+  flex-direction: column;
+  height: 100vh;
+  animation: fadeIn 0.4s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ===================== SIDEBAR ===================== */
+#sidebar {
+  background: rgba(17, 24, 39, 0.95);
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(8px);
+  overflow-y: auto;
+}
+
+#userList li {
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  text-align: center;
+  transition: background 0.3s;
+}
+
+#userList li:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* ===================== VIDEO AREA ===================== */
+#localVideo {
+  width: 240px;
+  height: 180px;
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  border-radius: 10px;
+  border: 2px solid #7c3aed;
+  object-fit: cover;
+  background: black;
+  z-index: 1000;
+}
+
+#remoteVideos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 10px;
+  padding: 10px;
+  overflow-y: auto;
+  background: rgba(31, 41, 55, 0.8);
+}
+
+#remoteVideos video {
+  width: 100%;
+  height: auto;
+  border-radius: 10px;
+  border: 2px solid #6d28d9;
+  background: black;
+}
+
+/* ===================== MEDIA CONTROLS ===================== */
+#mediaControlsPanel {
+  background: rgba(17, 24, 39, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.75rem 1.5rem;
+  border-radius: 9999px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+  transition: transform 0.3s ease, background 0.3s ease;
+}
+
+#mediaControlsPanel:hover {
+  transform: scale(1.02);
+}
+
+.media-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #fff;
+  cursor: pointer;
+  border: none;
+  transition: transform 0.2s ease, background-color 0.3s ease;
+}
+
+.media-btn:hover {
+  transform: scale(1.1);
+}
+
+.media-btn.active {
+  border: 2px solid #fff;
+}
+
+.media-btn.disabled {
+  opacity: 0.5;
+}
+
+/* ===================== QUALITY DROPDOWN ===================== */
+#qualityDropdown {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  margin-bottom: 0.5rem;
+  background: rgba(31, 41, 55, 0.95);
+  border-radius: 0.5rem;
+  overflow: hidden;
+  display: none;
+}
+
+.quality-option {
+  padding: 0.5rem 1rem;
+  background: none;
+  border: none;
+  color: #fff;
+  text-align: left;
+  width: 100%;
+  cursor: pointer;
+}
+
+.quality-option:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* ===================== CHAT PANEL ===================== */
+#chatPanel {
+  background: rgba(17, 24, 39, 0.98);
+  border-left: 1px solid rgba(255, 255, 255, 0.05);
+  transition: transform 0.4s ease;
+}
+
+#chatPanel.show {
+  transform: translateX(0);
+}
+
+#messages {
+  font-size: 0.9rem;
 }
 
 #messages div {
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+
+#messageInput {
+  background: rgba(31, 41, 55, 0.9);
+  border: none;
+}
+
+#messageInput::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* ===================== CONNECTION STATUS ===================== */
+#connectionStatus {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+}
+
+#connectionIndicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #10b981;
+}
+
+#connectionText {
+  color: white;
+}
+
+/* ===================== ANIMATIONS ===================== */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }

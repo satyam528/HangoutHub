@@ -1,64 +1,109 @@
-import Room from "./Room.js";
+// roomSocket.js
+const { Server } = require("socket.io");
 
-export default function roomSocketHandler(io, socket) {
-  console.log("User connected (socket.io):", socket.id);
+const rooms = {}; // store all active rooms in memory
 
-  socket.on("join-room", async (data) => {
-  const { roomCode, userName } = data;  // destructure from object
+module.exports = function (io) {
+  io.on("connection", (socket) => {
+    console.log(`Socket connected: ${socket.id}`);
 
-  try {
-    const room = await Room.findOne({ code: roomCode });
-    if (!room) {
-      socket.emit("error", { message: "Room not found" });
-      return;
-    }
+    // --- CREATE ROOM ---
+    socket.on("create-room", ({ hostProfile }) => {
+      const roomCode = Math.random().toString(36).substr(2, 6).toUpperCase();
 
-    const user = { id: socket.id, name: userName };
-    room.participants.push(user);
-    await room.save();
+      // Create a new room entry
+      const newRoom = {
+        code: roomCode,
+        host: hostProfile,
+        participants: [hostProfile],
+        messages: []
+      };
+      rooms[roomCode] = newRoom;
 
-    socket.join(roomCode);
-    socket.emit("room-joined", {room, user});
-    socket.to(roomCode).emit("user-joined", user);
-  } catch (err) {
-    console.error("Join error:", err);
-  }
- });
+      socket.join(roomCode);
+      console.log(`Room ${roomCode} created by ${hostProfile.name}`);
 
-  socket.on("send-message", async (data) => {
-  try {
-    const room = await Room.findOne({ "participants.id": socket.id });
-    if (!room) return;
+      // Send event back to creator
+      io.to(socket.id).emit("room-created", {
+        roomCode,
+        room: newRoom,
+        hostUser: hostProfile
+      });
+    });
 
-    const sender = room.participants.find(u => u.id === socket.id);
-    const msg = {
-      sender: sender ? sender.name : "Unknown",
-      message: data.message,  // Use data.message, not just message
-      type: "user",
-      timestamp: new Date()
-    };
+    // --- JOIN ROOM ---
+    socket.on("join-room", ({ roomCode, userName, userId }) => {
+      const room = rooms[roomCode];
+      if (!room) {
+        socket.emit("error", { message: "Room not found" });
+        return;
+      }
 
-    room.messages.push(msg);
-    await room.save();
+      const user = { name: userName, id: userId };
+      room.participants.push(user);
+      socket.join(roomCode);
+      console.log(`${userName} joined room ${roomCode}`);
 
-    io.to(room.code).emit("new-message", msg);
-  } catch (err) {
-    console.error("Message error:", err);
-  }
-});
+      // Notify the user who joined
+      io.to(socket.id).emit("room-joined", {
+        room,
+        user,
+        participants: room.participants
+      });
 
+      // Notify others in the room
+      socket.to(roomCode).emit("user-joined", { id: socket.id, name: userName });
+    });
 
-  socket.on("disconnect", async () => {
-    try {
-      const room = await Room.findOne({ "participants.id": socket.id });
-      if (!room) return;
+    // --- SIGNALING / MEDIA / CHAT EVENTS (your existing code) ---
+    socket.on("signal", ({ to, description, candidate }) => {
+      io.to(to).emit("signal", { from: socket.id, description, candidate });
+    });
 
-      room.participants = room.participants.filter(p => p.id !== socket.id);
-      await room.save();
+    socket.on("media-status-update", ({ roomCode, isAudioMuted, isVideoMuted, isScreenSharing }) => {
+      socket.to(roomCode).emit("media-status-update", {
+        userId: socket.id,
+        isAudioMuted,
+        isVideoMuted,
+        isScreenSharing,
+      });
+    });
 
-      io.to(room.code).emit("user-left", socket.id);
-    } catch (err) {
-      console.error("Disconnect error:", err);
-    }
+    socket.on("speaking-status", ({ roomCode, isSpeaking }) => {
+      socket.to(roomCode).emit("speaking-status", { userId: socket.id, isSpeaking });
+    });
+
+    socket.on("quality-changed", ({ roomCode, quality }) => {
+      socket.to(roomCode).emit("participant-quality-changed", {
+        userId: socket.id,
+        quality
+      });
+    });
+
+    socket.on("connection-quality", ({ roomCode, quality, stats }) => {
+      socket.to(roomCode).emit("participant-connection-quality", {
+        userId: socket.id,
+        quality,
+        stats
+      });
+    });
+
+    socket.on("send-message", ({ roomCode, message }) => {
+      io.in(roomCode).emit("new-message", { senderId: socket.id, message });
+    });
+
+    socket.on("leave-room", ({ roomCode }) => {
+      socket.leave(roomCode);
+      socket.to(roomCode).emit("user-left", { userId: socket.id });
+      console.log(`User ${socket.id} left room ${roomCode}`);
+    });
+
+    socket.on("disconnect", () => {
+      const userRooms = Array.from(socket.rooms).filter(r => r !== socket.id);
+      userRooms.forEach(roomCode => {
+        socket.to(roomCode).emit("user-left", { userId: socket.id });
+        console.log(`User ${socket.id} disconnected and left room ${roomCode}`);
+      });
+    });
   });
-}
+};

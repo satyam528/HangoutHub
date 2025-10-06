@@ -1,82 +1,93 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>HangoutHub</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HangoutHub Rooms</title>
 
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- Custom Styles -->
-  <link rel="stylesheet" href="style.css">
-
   <!-- Socket.IO -->
-  <script src="https://cdn.socket.io/4.7.1/socket.io.min.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <link href="style.css" rel="stylesheet" />
 </head>
-<body class="bg-gradient-to-br from-gray-900 to-black text-white">
+<body class="bg-gradient-to-br from-gray-900 to-black text-white flex flex-col h-screen">
 
-  <!-- Home Page -->
-  <div id="homePage" class="p-6">
-    <h1 class="text-3xl font-bold mb-4">Welcome to HangoutHub</h1>
-    <p class="text-gray-400 mb-6">Create or join a room to hang out with friends.</p>
+  <!-- Home Page / Login -->
+  <div id="homePage" class="flex items-center justify-center h-screen bg-gradient-to-br from-gray-900 to-black">
+    <div class="login-card bg-white bg-opacity-10 backdrop-blur-md rounded-xl p-8 flex flex-col items-center w-80">
+      <h1 class="text-2xl font-bold mb-6 text-white">Welcome to HangoutHub</h1>
 
-    <!-- Create Room -->
-    <form id="createRoomForm" class="mb-4">
-      <input type="text" id="createUserName" placeholder="Your Name"
-             class="p-2 rounded bg-gray-800 text-white" required>
-      <button type="submit"
-              class="px-4 py-2 ml-2 rounded bg-purple-600 hover:bg-purple-700 transition">
-        Create Room
+      <!-- Username input -->
+      <input type="text" id="username" placeholder="Enter your name" 
+             class="mb-4 w-full p-2 rounded bg-gray-800 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+
+      <!-- Login button -->
+      <button id="loginBtn" class="w-full py-2 bg-blue-600 hover:bg-blue-700 rounded text-white font-semibold">
+        Login
       </button>
-    </form>
 
-    <!-- Join Room -->
-    <form id="joinRoomForm" class="flex space-x-2 mt-4">
-      <input type="text" id="joinUserName" placeholder="Your Name"
-             class="px-4 py-2 rounded bg-gray-800 text-white flex-1" required />
-      <input type="text" id="joinRoomCode" placeholder="Room Code"
-             class="px-4 py-2 rounded bg-gray-800 text-white flex-1" required />
-      <button type="submit"
-              class="px-4 py-2 rounded bg-green-600 hover:bg-green-700 text-white transition">
-        Join Room
-      </button>
-    </form>
+      <!-- Room controls visible after login -->
+      <div id="roomControls" class="mt-6 w-full hidden flex-col">
+        <button id="createRoomBtn" class="mb-2 bg-blue-600 text-white py-2 px-4 rounded w-full disabled:opacity-50">
+          Create Room
+        </button>
+        <input id="roomCodeInput" type="text" placeholder="Enter Room Code"
+               class="mb-2 p-2 rounded w-full text-gray-900" />
+        <button id="joinRoomBtn" class="bg-green-600 text-white py-2 px-4 rounded w-full disabled:opacity-50">
+          Join Room
+        </button>
+      </div>
+    </div>
   </div>
 
-  <!-- Chat App (hidden initially) -->
-  <div id="chatApp" class="hidden h-screen flex flex-col">
-    <!-- Room Info Bar -->
-    <div class="bg-gray-800 p-3 flex justify-between items-center">
-      <div>
-        Room Code: <span id="roomCodeDisplay" class="font-mono text-green-400"></span>
-      </div>
-      <button id="copyRoomCode" class="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded">
+  <!-- Chat & Video App -->
+  <div id="chatApp" class="hidden flex flex-col flex-grow h-full">
+    <header class="bg-gray-800 p-3 flex justify-between items-center text-white">
+      <div>Room Code: <span id="roomCodeDisplay" class="font-mono text-green-400"></span></div>
+      <button id="copyRoomCode" class="bg-gray-700 px-3 py-1 rounded hover:bg-gray-600">
         Copy Code
       </button>
-    </div>
+    </header>
 
-    <div class="flex flex-1">
-      <!-- Sidebar -->
-      <aside class="w-64 bg-gray-800 p-4" id="sidebar">
-        <h2 class="text-xl font-bold mb-2">Users</h2>
-        <ul id="userList" class="space-y-1"></ul>
+    <main class="flex flex-grow overflow-hidden">
+      <aside id="sidebar" class="w-64 bg-gray-900 p-4 flex flex-col">
+        <h2 class="text-lg font-bold mb-3">Participants</h2>
+        <ul id="userList" class="flex-grow overflow-auto space-y-2"></ul>
+        <button id="admitAllBtn" class="mt-4 bg-blue-600 py-2 rounded hover:bg-blue-700 hidden">
+          Admit All
+        </button>
       </aside>
 
-      <!-- Main Area -->
-      <main class="flex-1 flex flex-col bg-gray-900">
-        <div id="messages" class="flex-1 overflow-y-auto p-4"></div>
-        <form id="messageForm" class="flex p-4">
-          <input type="text" id="messageInput"
-                 class="flex-1 p-2 rounded bg-gray-800 text-white"
-                 placeholder="Type a message..." required>
-          <button type="submit"
-                  class="px-4 py-2 ml-2 rounded bg-purple-600 hover:bg-purple-700 transition">
-            Send
-          </button>
-        </form>
-      </main>
-    </div>
+      <section class="flex flex-col flex-grow relative">
+        <!-- Local Video -->
+        <video id="localVideo" autoplay muted playsinline webkit-playsinline class="rounded bg-black w-full h-auto"></video>
+
+        <!-- Remote Videos Grid -->
+        <div id="remoteVideos" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 p-2 bg-gray-800 flex-grow overflow-auto"></div>
+
+        <!-- Bottom Controls -->
+        <div class="absolute bottom-5 left-1/2 transform -translate-x-1/2 flex space-x-5 bg-gray-900 bg-opacity-75 p-3 rounded-full z-30 shadow-xl">
+          <button id="muteBtn" title="Mute / Unmute Microphone" class="bg-gray-700 hover:bg-gray-600 p-3 rounded-full">🎤</button>
+          <button id="videoBtn" title="Toggle Video" class="bg-gray-700 hover:bg-gray-600 p-3 rounded-full">📹</button>
+          <button id="hangupBtn" title="Leave Call" class="bg-red-600 hover:bg-red-700 p-3 rounded-full">❌</button>
+          <button id="chatToggleBtn" title="Toggle Chat" class="bg-blue-600 hover:bg-blue-700 p-3 rounded-full">💬</button>
+        </div>
+
+        <!-- Chat Panel -->
+        <div id="chatPanel" class="fixed top-0 right-0 w-80 h-full bg-gray-900 shadow-lg transform translate-x-full transition-transform z-40 flex flex-col">
+          <div class="p-3 flex justify-between items-center border-b border-gray-700">
+            <h3 class="text-white font-semibold text-lg">Chat</h3>
+            <button id="closeChatBtn" class="text-white text-xl font-bold">×</button>
+          </div>
+          <div id="messages" class="flex-grow overflow-auto p-3"></div>
+          <form id="messageForm" class="p-3 flex space-x-2">
+            <input id="messageInput" type="text" placeholder="Type a message..." class="flex-grow p-2 rounded bg-gray-700 text-white" required />
+            <button type="submit" class="bg-blue-600 px-4 py-2 rounded hover:bg-blue-700 text-white">Send</button>
+          </form>
+        </div>
+      </section>
+    </main>
   </div>
 
   <script src="app.js"></script>
